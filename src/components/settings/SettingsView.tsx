@@ -5,6 +5,12 @@ import { GlassCard } from '../common/GlassCard';
 import { saveSupabaseConfig, DEFAULT_SUPABASE_URL } from '../../lib/supabase';
 import { formatUSD } from '../../lib/utils';
 import {
+  SUPPORTED_CURRENCIES,
+  getAppCurrency,
+  setAppCurrency,
+  formatCurrency,
+} from '../../lib/currency';
+import {
   Sliders,
   Database,
   Globe,
@@ -21,6 +27,11 @@ import {
 export const SettingsView: React.FC = () => {
   const { settings, updateSettings, exportDataJSON, exportDataCSV, objective, saveObjective } = useSystemData();
   const { user, logout, deleteAccount } = useAuth();
+
+  // Active Currency state
+  const [selectedCurrency, setSelectedCurrency] = useState(
+    settings.primary_currency || getAppCurrency()
+  );
 
   // Objective
   const [objMontant, setObjMontant] = useState(String(objective?.montant_cible || 100000));
@@ -60,7 +71,10 @@ export const SettingsView: React.FC = () => {
       await saveObjective({ montant_cible: numObjMontant, date_cible: objDate });
     }
 
+    setAppCurrency(selectedCurrency);
+
     await updateSettings({
+      primary_currency: selectedCurrency,
       profit_first: {
         profit: pfProfit,
         owner_pay: pfOwner,
@@ -146,26 +160,30 @@ export const SettingsView: React.FC = () => {
           </div>
           <p className="text-xs text-white/60 leading-relaxed">
             Modifie à tout moment ton objectif financier et ta date cible.
-            Tous les calculs et prévisions s'adaptent instantanément.
+            Tous les calculs et prévisions s'adaptent instantanément à ta devise ({selectedCurrency}).
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-xs font-semibold text-white/80 mb-1.5">
-                Montant cible (USD)
+                Montant cible ({SUPPORTED_CURRENCIES.find((c) => c.code === selectedCurrency)?.code || selectedCurrency})
               </label>
               <div className="relative">
-                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 font-bold text-base pointer-events-none">$</span>
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/50 font-bold text-sm pointer-events-none">
+                  {SUPPORTED_CURRENCIES.find((c) => c.code === selectedCurrency)?.symbol || '$'}
+                </span>
                 <input
                   type="number"
                   min="1"
                   step="1000"
                   value={objMontant}
                   onChange={(e) => setObjMontant(e.target.value)}
-                  className="w-full pl-8 pr-3 py-2.5 rounded-xl bg-[#0D0A18]/80 border border-white/15 text-white text-sm font-semibold tabular-nums focus:outline-none focus:border-[#A87FE8] transition-colors"
+                  className="w-full pl-14 pr-3 py-2.5 rounded-xl bg-[#0D0A18]/80 border border-white/15 text-white text-sm font-semibold tabular-nums focus:outline-none focus:border-[#A87FE8] transition-colors"
                 />
               </div>
               {numObjMontant > 0 && (
-                <p className="text-xs text-[#C9A070] mt-1 font-semibold">{formatUSD(numObjMontant, 0)}</p>
+                <p className="text-xs text-[#C9A070] mt-1 font-semibold">
+                  {formatCurrency(numObjMontant, selectedCurrency, 0)}
+                </p>
               )}
             </div>
             <div>
@@ -246,14 +264,59 @@ export const SettingsView: React.FC = () => {
           <div className="flex items-center gap-2 border-b border-white/10 pb-3">
             <Globe className="w-5 h-5 text-[#A87FE8]" />
             <h3 className="text-base font-bold text-white tracking-tight font-jost">
-              Devises & API de Taux de Change
+              Devise Principale & Taux de Change
             </h3>
           </div>
           <p className="text-xs text-white/60 leading-relaxed">
-            Le Système fonctionne en USD par défaut avec conversion instantanée XOF/USD.
-            Lorsque le site sera déployé, branche ton endpoint d'API pour élargir dynamiquement le support des monnaies.
+            Choisis la devise de référence pour l'ensemble de ton tableau de bord, tes objectifs financiers et tes transactions.
+            Pour Class S à Ouagadougou, le Franc CFA (XOF) est la devise par excellence.
           </p>
+
           <div>
+            <label className="block text-xs font-semibold text-white/80 mb-2">
+              Devise active du Système
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {SUPPORTED_CURRENCIES.map((curr) => {
+                const isSelected = selectedCurrency === curr.code;
+                return (
+                  <button
+                    type="button"
+                    key={curr.code}
+                    onClick={() => setSelectedCurrency(curr.code)}
+                    className={`p-3 rounded-2xl border text-left transition-all flex flex-col justify-between ${
+                      isSelected
+                        ? 'bg-[#6600CC]/30 border-[#A87FE8] shadow-lg shadow-[#6600CC]/20 ring-1 ring-[#A87FE8]'
+                        : 'bg-white/5 border-white/10 hover:border-white/20 hover:bg-white/[0.07]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl">{curr.flag}</span>
+                      <span
+                        className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                          isSelected
+                            ? 'bg-[#A87FE8] text-[#0D0A18]'
+                            : 'bg-white/10 text-white/60'
+                        }`}
+                      >
+                        {curr.symbol}
+                      </span>
+                    </div>
+                    <div className="mt-2">
+                      <span className="text-xs font-bold text-white block">
+                        {curr.code}
+                      </span>
+                      <span className="text-[10px] text-white/50 block truncate">
+                        {curr.name}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="pt-2">
             <label className="block text-xs font-semibold text-white/80 mb-1">
               URL de l'API de Taux de Change (Optionnelle)
             </label>

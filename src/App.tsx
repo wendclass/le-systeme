@@ -3,6 +3,7 @@ import { ActivePage, Activity } from './types';
 import { useAuth } from './context/AuthContext';
 import { useSystemData } from './context/SystemDataContext';
 import { calculateMilestones } from './lib/calculations';
+import { getAppCurrency } from './lib/currency';
 import { DEFAULT_TARGET_USD, DEFAULT_TARGET_DATE } from './lib/constants';
 import { isClassSModule } from './lib/guard';
 import { AccessDeniedView } from './components/common/AccessDeniedView';
@@ -162,9 +163,11 @@ const AppContent: React.FC = () => {
     setActivePage(page);
   }, []);
 
-  const targetUSD = objective?.montant_cible ?? DEFAULT_TARGET_USD;
+  const activeCurrency = settings.primary_currency || getAppCurrency();
+  const targetUSD =
+    objective?.montant_cible ?? (activeCurrency === 'XOF' ? 60000000 : DEFAULT_TARGET_USD);
   const targetDateStr = objective?.date_cible ?? DEFAULT_TARGET_DATE;
-  const milestones = calculateMilestones(transactions, targetUSD, targetDateStr);
+  const milestones = calculateMilestones(transactions, targetUSD, targetDateStr, activeCurrency);
 
   // Accès public client sans authentification (S6)
   if (clientToken) {

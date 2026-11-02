@@ -4,6 +4,7 @@ import { HunterBadge } from '../common/HunterBadge';
 import { GlassCard } from '../common/GlassCard';
 import { StatCounter } from '../common/StatCounter';
 import { formatUSD, getMonthYearKey } from '../../lib/utils';
+import { getAppCurrency, convertAmount } from '../../lib/currency';
 import { Sparkles, ArrowUpRight, Plus, Layers } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 
@@ -69,13 +70,22 @@ export const ActivityRankCards: React.FC<ActivityRankCardsProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {activities.map((activity) => {
           const actTx = transactions.filter((t) => t.activite_id === activity.id);
+          const activeCurrency = getAppCurrency();
           const totalRevenue = actTx
             .filter((t) => t.type === 'revenu')
-            .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+            .reduce((sum, t) => {
+              const orig = t.montant_original ?? t.montant_usd ?? 0;
+              const fromCurr = t.devise_origine || 'USD';
+              return sum + convertAmount(orig, fromCurr, activeCurrency);
+            }, 0);
 
           const monthRevenue = actTx
             .filter((t) => t.type === 'revenu' && getMonthYearKey(t.date) === currentMonthKey)
-            .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+            .reduce((sum, t) => {
+              const orig = t.montant_original ?? t.montant_usd ?? 0;
+              const fromCurr = t.devise_origine || 'USD';
+              return sum + convertAmount(orig, fromCurr, activeCurrency);
+            }, 0);
 
           // Build last 6 months sparkline data
           const sparklineData = Array.from({ length: 6 }).map((_, idx) => {
@@ -84,7 +94,11 @@ export const ActivityRankCards: React.FC<ActivityRankCardsProps> = ({
             const mKey = getMonthYearKey(d.toISOString());
             const rev = actTx
               .filter((t) => t.type === 'revenu' && getMonthYearKey(t.date) === mKey)
-              .reduce((s, t) => s + (t.montant_usd || 0), 0);
+              .reduce((s, t) => {
+                const orig = t.montant_original ?? t.montant_usd ?? 0;
+                const fromCurr = t.devise_origine || 'USD';
+                return s + convertAmount(orig, fromCurr, activeCurrency);
+              }, 0);
             return { month: mKey, val: rev };
           });
 

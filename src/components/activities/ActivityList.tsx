@@ -3,6 +3,7 @@ import { Activity, HunterRank, Transaction, RecurringExpense } from '../../types
 import { GlassCard } from '../common/GlassCard';
 import { HunterBadge } from '../common/HunterBadge';
 import { formatUSD } from '../../lib/utils';
+import { getAppCurrency, convertAmount } from '../../lib/currency';
 import { Plus, Edit2, Archive, Sparkles, Layers, ArrowUpRight } from 'lucide-react';
 import { ActivityDetailModal } from './ActivityDetailModal';
 import { ActivityFormModal } from './ActivityFormModal';
@@ -74,12 +75,21 @@ export const ActivityList: React.FC<ActivityListProps> = ({
           {activities.map((act) => {
             const actTx = transactions.filter((t) => t.activite_id === act.id);
             const actExp = recurringExpenses.filter((e) => e.activite_id === act.id);
+            const activeCurrency = getAppCurrency();
             const totalRev = actTx
               .filter((t) => t.type === 'revenu')
-              .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+              .reduce((sum, t) => {
+                const orig = t.montant_original ?? t.montant_usd ?? 0;
+                const fromCurr = t.devise_origine || 'USD';
+                return sum + convertAmount(orig, fromCurr, activeCurrency);
+              }, 0);
             const totalCost = actTx
               .filter((t) => t.type === 'depense')
-              .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+              .reduce((sum, t) => {
+                const orig = t.montant_original ?? t.montant_usd ?? 0;
+                const fromCurr = t.devise_origine || 'USD';
+                return sum + convertAmount(orig, fromCurr, activeCurrency);
+              }, 0);
 
             return (
               <GlassCard

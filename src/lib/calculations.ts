@@ -1,5 +1,6 @@
 import { Transaction, RecurringExpense, ProfitFirstSettings } from '../types';
 import { getMonthYearKey, getDaysUntil } from './utils';
+import { convertAmount, getAppCurrency } from './currency';
 
 export interface MilestoneProgress {
   totalRevenueUSD: number;
@@ -43,14 +44,24 @@ export interface ForecastResult {
 
 export function calculateMilestones(
   transactions: Transaction[],
-  targetUSD: number,
-  targetDateStr: string
+  targetAmount: number,
+  targetDateStr: string,
+  targetCurrency?: string
 ): MilestoneProgress {
+  const currency = targetCurrency || getAppCurrency();
   const targetDate = new Date(targetDateStr + 'T00:00:00Z');
   const revenueTx = transactions.filter((t) => t.type === 'revenu');
-  const totalRevenueUSD = revenueTx.reduce((sum, t) => sum + (t.montant_usd || 0), 0);
-  const remainingUSD = Math.max(0, targetUSD - totalRevenueUSD);
-  const percentage = targetUSD > 0 ? Math.min(100, (totalRevenueUSD / targetUSD) * 100) : 0;
+
+  // Conversion dynamique vers la devise d'affichage choisie par l'utilisateur
+  const totalRevenue = revenueTx.reduce((sum, t) => {
+    const fromCurr = t.devise_origine || 'USD';
+    const originalAmt = t.montant_original ?? t.montant_usd ?? 0;
+    const converted = convertAmount(originalAmt, fromCurr, currency);
+    return sum + converted;
+  }, 0);
+
+  const remaining = Math.max(0, targetAmount - totalRevenue);
+  const percentage = targetAmount > 0 ? Math.min(100, (totalRevenue / targetAmount) * 100) : 0;
   const daysRemaining = getDaysUntil(targetDate);
   const monthsRemaining = Math.max(1, Math.ceil(daysRemaining / 30.44));
 
@@ -61,33 +72,36 @@ export function calculateMilestones(
     startDate = sorted[0].date;
   }
 
-  // Monthly breakdown for revenues
+  // Monthly breakdown for revenues dans la devise choisie
   const monthlyRevenueMap: Record<string, number> = {};
   revenueTx.forEach((t) => {
     const key = getMonthYearKey(t.date);
-    monthlyRevenueMap[key] = (monthlyRevenueMap[key] || 0) + (t.montant_usd || 0);
+    const fromCurr = t.devise_origine || 'USD';
+    const originalAmt = t.montant_original ?? t.montant_usd ?? 0;
+    const converted = convertAmount(originalAmt, fromCurr, currency);
+    monthlyRevenueMap[key] = (monthlyRevenueMap[key] || 0) + converted;
   });
 
   const monthlyValues = Object.values(monthlyRevenueMap);
-  const bestMonthUSD = monthlyValues.length > 0 ? Math.max(...monthlyValues) : 0;
-  const averageMonthlyUSD =
+  const bestMonth = monthlyValues.length > 0 ? Math.max(...monthlyValues) : 0;
+  const averageMonthly =
     monthlyValues.length > 0
       ? monthlyValues.reduce((a, b) => a + b, 0) / monthlyValues.length
       : 0;
 
-  const monthlyRequiredUSD = remainingUSD / monthsRemaining;
+  const monthlyRequired = remaining / monthsRemaining;
 
   return {
-    totalRevenueUSD,
-    targetRevenueUSD: targetUSD,
-    remainingUSD,
+    totalRevenueUSD: totalRevenue,
+    targetRevenueUSD: targetAmount,
+    remainingUSD: remaining,
     percentage,
     daysRemaining,
     monthsRemaining,
     startDate,
-    bestMonthUSD,
-    averageMonthlyUSD,
-    monthlyRequiredUSD,
+    bestMonthUSD: bestMonth,
+    averageMonthlyUSD: averageMonthly,
+    monthlyRequiredUSD: monthlyRequired,
   };
 }
 
@@ -114,35 +128,43 @@ export function calculateProfitFirst(
   };
 }
 
-export function getNormalizedMonthlyCost(expense: RecurringExpense): number {
+export function getNormalizedMonthlyCost(expense: RecurringExpense, targetCurrency?: string): number {
   if (expense.statut !== 'actif') return 0;
-  const usd = expense.montant_usd || 0;
+  const currency = targetCurrency || getAppCurrency();
+  const fromCurr = expense.devise_origine || 'USD';
+  const originalAmt = expense.montant_original ?? expense.montant_usd ?? 0;
+  const converted = convertAmount(originalAmt, fromCurr, currency);
   switch (expense.frequence) {
     case 'mensuelle':
-      return usd;
+      return converted;
     case 'trimestrielle':
-      return usd / 3;
+      return converted / 3;
     case 'annuelle':
-      return usd / 12;
+      return converted / 12;
     default:
-      return usd;
+      return converted;
   }
 }
 
 export function calculateForecast(
   transactions: Transaction[],
-  targetUSD: number,
+  targetAmount: number,
   targetDateStr: string,
-  simulatedGrowthPercent: number = 0
+  simulatedGrowthPercent: number = 0,
+  targetCurrency?: string
 ): ForecastResult {
-  const milestone = calculateMilestones(transactions, targetUSD, targetDateStr);
+  const currency = targetCurrency || getAppCurrency();
+  const milestone = calculateMilestones(transactions, targetAmount, targetDateStr, currency);
   const revenueTx = transactions.filter((t) => t.type === 'revenu');
 
   // Group by month
   const monthlyRevenueMap: Record<string, number> = {};
   revenueTx.forEach((t) => {
     const key = getMonthYearKey(t.date);
-    monthlyRevenueMap[key] = (monthlyRevenueMap[key] || 0) + (t.montant_usd || 0);
+    const fromCurr = t.devise_origine || 'USD';
+    const originalAmt = t.montant_original ?? t.montant_usd ?? 0;
+    const amt = convertAmount(originalAmt, fromCurr, currency);
+    monthlyRevenueMap[key] = (monthlyRevenueMap[key] || 0) + amt;
   });
 
   const sortedMonthKeys = Object.keys(monthlyRevenueMap).sort();
@@ -193,7 +215,7 @@ export function calculateForecast(
   let runningActual = 0;
   let runningProjected = milestone.totalRevenueUSD;
   let runningRequired = 0;
-  const requiredStep = targetUSD / Math.max(1, milestone.monthsRemaining + monthsCount);
+  const requiredStep = targetAmount / Math.max(1, milestone.monthsRemaining + monthsCount);
 
   // Past months
   sortedMonthKeys.forEach((k) => {
@@ -203,7 +225,7 @@ export function calculateForecast(
       monthKey: k,
       label: k,
       actualCumulative: runningActual,
-      requiredCumulative: Math.min(targetUSD, runningRequired),
+      requiredCumulative: Math.min(targetAmount, runningRequired),
       projectedCumulative: runningActual,
     });
   });
@@ -220,7 +242,7 @@ export function calculateForecast(
     chartData.push({
       monthKey: key,
       label: key,
-      requiredCumulative: Math.min(targetUSD, runningRequired),
+      requiredCumulative: Math.min(targetAmount, runningRequired),
       projectedCumulative: method !== 'insufficient_data' ? Number(runningProjected.toFixed(0)) : undefined,
       projectedLow: method !== 'insufficient_data' ? Math.max(0, Number((runningProjected - stdSpread).toFixed(0))) : undefined,
       projectedHigh: method !== 'insufficient_data' ? Number((runningProjected + stdSpread).toFixed(0)) : undefined,

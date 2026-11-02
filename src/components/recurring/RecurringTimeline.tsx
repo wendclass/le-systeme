@@ -2,6 +2,7 @@ import React from 'react';
 import { RecurringExpense, Activity } from '../../types';
 import { GlassCard } from '../common/GlassCard';
 import { formatUSD, formatDateFr } from '../../lib/utils';
+import { formatTransactionAmount } from '../../lib/currency';
 import { Calendar, Clock, ArrowRight } from 'lucide-react';
 
 interface RecurringTimelineProps {
@@ -87,7 +88,7 @@ export const RecurringTimeline: React.FC<RecurringTimelineProps> = ({
 
               <div className="text-right">
                 <span className="text-sm font-bold text-white tabular-nums">
-                  {formatUSD(item.expense.montant_usd, 0)}
+                  {formatTransactionAmount(item.expense.montant_original, item.expense.devise_origine, item.expense.montant_usd, 0)}
                 </span>
                 <span className="text-[10px] text-white/40 block uppercase">
                   {item.expense.frequence}

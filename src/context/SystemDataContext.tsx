@@ -12,7 +12,7 @@ import {
 } from '../types';
 import { useAuth } from './AuthContext';
 import { getSupabaseClient } from '../lib/supabase';
-import { convertToUSD } from '../lib/currency';
+import { convertToUSD, setAppCurrency, getAppCurrency } from '../lib/currency';
 
 interface SystemDataContextType {
   // Sync state
@@ -82,6 +82,7 @@ const DEFAULT_SETTINGS: UserSettings = {
   rate_updated_at: new Date().toISOString(),
   opex_alert_threshold: 30,
   showcase_interests: [],
+  primary_currency: 'XOF',
 };
 
 export const SystemDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -126,7 +127,17 @@ export const SystemDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (savedTx) setTransactions(JSON.parse(savedTx));
       if (savedExp) setRecurringExpenses(JSON.parse(savedExp));
       if (savedTasks) setDailyTasks(JSON.parse(savedTasks));
-      if (savedSettings) setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings), uid });
+      if (savedSettings) {
+        const parsed = JSON.parse(savedSettings);
+        const merged = { ...DEFAULT_SETTINGS, ...parsed, uid };
+        setSettings(merged);
+        if (merged.primary_currency) {
+          setAppCurrency(merged.primary_currency);
+        }
+      } else {
+        const activeCurr = getAppCurrency();
+        setSettings((prev) => ({ ...prev, primary_currency: activeCurr }));
+      }
       if (savedObjective) setObjective(JSON.parse(savedObjective));
     } catch (e) {
       console.error('Error loading local state:', e);
@@ -383,6 +394,9 @@ export const SystemDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // ================= SETTINGS & SHOWCASES =================
   const updateSettings = async (newSettings: Partial<UserSettings>) => {
     const updated = { ...settings, ...newSettings };
+    if (updated.primary_currency) {
+      setAppCurrency(updated.primary_currency);
+    }
     setSettings(updated);
     persistLocally('settings', updated);
     await syncWithCloud('user_settings', updated as unknown as Record<string, unknown>, 'upsert');

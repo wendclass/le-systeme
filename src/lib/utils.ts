@@ -1,32 +1,23 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { formatCurrency, getAppCurrency, setAppCurrency } from './currency';
+
+export { formatCurrency, getAppCurrency, setAppCurrency };
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatUSD(amount: number, decimals: number = 0): string {
-  if (isNaN(amount) || amount === null || amount === undefined) return '$0';
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    minimumFractionDigits: decimals,
-    maximumFractionDigits: decimals,
-  }).format(amount);
+export function formatUSD(amount: number, decimals: number = 0, currencyOverride?: string): string {
+  return formatCurrency(amount, currencyOverride, decimals);
 }
 
 export function formatXOF(amount: number): string {
-  if (isNaN(amount) || amount === null || amount === undefined) return '0 XOF';
-  return new Intl.NumberFormat('fr-FR', {
-    style: 'decimal',
-    maximumFractionDigits: 0,
-  }).format(amount) + ' XOF';
+  return formatCurrency(amount, 'XOF', 0);
 }
 
 export function formatOriginalCurrency(amount: number, currency: string): string {
-  if (currency === 'USD') return formatUSD(amount);
-  if (currency === 'XOF') return formatXOF(amount);
-  return `${new Intl.NumberFormat('fr-FR').format(amount)} ${currency}`;
+  return formatCurrency(amount, currency);
 }
 
 export function getDaysUntil(targetDate: Date | string): number {

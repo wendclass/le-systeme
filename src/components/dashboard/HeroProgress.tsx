@@ -125,7 +125,7 @@ export const HeroProgress: React.FC<HeroProgressProps> = ({
                 Meilleur Mois
               </span>
               <span className="text-base sm:text-lg font-bold text-[#4ADE9A] tabular-nums mt-0.5 block">
-                {milestone.bestMonthUSD > 0 ? formatUSD(milestone.bestMonthUSD, 0) : '—'}
+                {milestone.bestMonthUSD > 0 ? formatUSD(milestone.bestMonthUSD, 0) : '-'}
               </span>
             </div>
 
@@ -134,7 +134,7 @@ export const HeroProgress: React.FC<HeroProgressProps> = ({
                 Moyenne Réelle
               </span>
               <span className="text-base sm:text-lg font-bold text-[#A87FE8] tabular-nums mt-0.5 block">
-                {milestone.averageMonthlyUSD > 0 ? formatUSD(milestone.averageMonthlyUSD, 0) : '—'}
+                {milestone.averageMonthlyUSD > 0 ? formatUSD(milestone.averageMonthlyUSD, 0) : '-'}
               </span>
             </div>
           </div>

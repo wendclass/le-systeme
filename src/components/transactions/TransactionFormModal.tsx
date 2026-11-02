@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Activity, Client, Transaction } from '../../types';
 import { Modal } from '../common/Modal';
 import { REVENUE_CATEGORIES, EXPENSE_CATEGORIES } from '../../lib/constants';
-import { SUPPORTED_CURRENCIES, convertToUSD } from '../../lib/currency';
+import { SUPPORTED_CURRENCIES, convertToUSD, getAppCurrency } from '../../lib/currency';
 import { formatUSD } from '../../lib/utils';
 import { Plus, Check, AlertCircle, Sparkles, UserPlus } from 'lucide-react';
 
@@ -29,7 +29,7 @@ export const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
 }) => {
   const [type, setType] = useState<'revenu' | 'depense'>('revenu');
   const [montant, setMontant] = useState<string>('');
-  const [devise, setDevise] = useState<string>('USD');
+  const [devise, setDevise] = useState<string>(() => getAppCurrency());
   const [activiteId, setActiviteId] = useState<string>(defaultActivityId || activities[0]?.id || '');
   const [clientId, setClientId] = useState<string>('');
   const [categorie, setCategorie] = useState<string>('');

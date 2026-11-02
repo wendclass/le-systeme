@@ -94,14 +94,16 @@ export interface ProfitFirstSettings {
 export interface UserObjective {
   id: string;
   uid: string;
-  montant_cible: number;  // en USD
+  montant_cible: number;
   date_cible: string;     // YYYY-MM-DD
   date_creation: string;
+  devise_cible?: string;
 }
 
 export interface UserSettings {
   uid: string;
   profit_first: ProfitFirstSettings;
+  primary_currency?: string; // 'XOF' | 'USD' | 'EUR' | 'GBP' | 'CAD'
   xof_to_usd_rate: number; // default 0.00165 (~606 XOF / USD)
   rate_updated_at: string;
   currency_api_url?: string;

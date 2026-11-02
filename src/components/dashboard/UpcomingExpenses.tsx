@@ -2,6 +2,7 @@ import React from 'react';
 import { RecurringExpense, Activity } from '../../types';
 import { GlassCard } from '../common/GlassCard';
 import { formatUSD, formatOriginalCurrency, formatDateFr } from '../../lib/utils';
+import { formatTransactionAmount, getAppCurrency } from '../../lib/currency';
 import { Repeat, Calendar, ArrowRight, CheckCircle2 } from 'lucide-react';
 
 interface UpcomingExpensesProps {
@@ -86,9 +87,9 @@ export const UpcomingExpenses: React.FC<UpcomingExpensesProps> = ({
               <div className="mt-3 pt-2 border-t border-white/10 flex items-baseline justify-between">
                 <div>
                   <span className="text-sm font-bold text-white tabular-nums">
-                    {formatUSD(item.montant_usd, 0)}
+                    {formatTransactionAmount(item.montant_original, item.devise_origine, item.montant_usd, 0)}
                   </span>
-                  {item.devise_origine !== 'USD' && (
+                  {item.devise_origine !== getAppCurrency() && (
                     <span className="block text-[10px] text-white/40 tabular-nums">
                       {formatOriginalCurrency(item.montant_original, item.devise_origine)}
                     </span>

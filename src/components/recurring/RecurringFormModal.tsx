@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Activity, RecurringExpense, RecurringExpenseNature } from '../../types';
 import { Modal } from '../common/Modal';
-import { SUPPORTED_CURRENCIES, convertToUSD } from '../../lib/currency';
+import { SUPPORTED_CURRENCIES, convertToUSD, getAppCurrency } from '../../lib/currency';
 import { formatUSD } from '../../lib/utils';
 import { Check, AlertCircle } from 'lucide-react';
 
@@ -24,7 +24,7 @@ export const RecurringFormModal: React.FC<RecurringFormModalProps> = ({
   const [nature, setNature] = useState<RecurringExpenseNature>('abonnement');
   const [activiteId, setActiviteId] = useState<string>('');
   const [montant, setMontant] = useState<string>('');
-  const [devise, setDevise] = useState<string>('USD');
+  const [devise, setDevise] = useState<string>(() => getAppCurrency());
   const [frequence, setFrequence] = useState<'mensuelle' | 'trimestrielle' | 'annuelle'>('mensuelle');
   const [datePremierPaiement, setDatePremierPaiement] = useState<string>(
     new Date().toISOString().split('T')[0]

@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { formatUSD, formatXOF } from '../../lib/utils';
+import { formatCurrency, getAppCurrency } from '../../lib/currency';
 
 interface StatCounterProps {
   value: number;
-  currency?: 'USD' | 'XOF' | 'none';
+  currency?: string;
   durationMs?: number;
   className?: string;
   decimals?: number;
@@ -11,7 +11,7 @@ interface StatCounterProps {
 
 export const StatCounter: React.FC<StatCounterProps> = ({
   value,
-  currency = 'USD',
+  currency = 'auto',
   durationMs = 600,
   className = '',
   decimals = 0,
@@ -48,14 +48,16 @@ export const StatCounter: React.FC<StatCounterProps> = ({
   }, [value, durationMs]);
 
   const formatted =
-    currency === 'USD'
-      ? formatUSD(displayValue, decimals)
-      : currency === 'XOF'
-      ? formatXOF(displayValue)
-      : new Intl.NumberFormat('fr-FR', {
+    currency === 'none'
+      ? new Intl.NumberFormat('fr-FR', {
           minimumFractionDigits: decimals,
           maximumFractionDigits: decimals,
-        }).format(displayValue);
+        }).format(displayValue)
+      : formatCurrency(
+          displayValue,
+          currency === 'auto' || currency === 'USD' ? getAppCurrency() : currency,
+          decimals
+        );
 
   return <span className={`tabular-nums font-semibold tracking-tight ${className}`}>{formatted}</span>;
 };

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Transaction, Activity, Client } from '../../types';
 import { formatUSD, formatOriginalCurrency, formatDateFr } from '../../lib/utils';
+import { formatTransactionAmount, getAppCurrency } from '../../lib/currency';
 import { GlassCard } from '../common/GlassCard';
 import {
   Search,
@@ -221,9 +222,9 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                             isRevenue ? 'text-[#4ADE9A]' : 'text-rose-400'
                           }`}
                         >
-                          {isRevenue ? '+' : '-'} {formatUSD(tx.montant_usd, 2)}
+                          {isRevenue ? '+' : '-'} {formatTransactionAmount(tx.montant_original, tx.devise_origine, tx.montant_usd, 0)}
                         </span>
-                        {tx.devise_origine !== 'USD' && (
+                        {tx.devise_origine !== getAppCurrency() && (
                           <span className="text-[10px] text-white/40 tabular-nums block">
                             {formatOriginalCurrency(tx.montant_original, tx.devise_origine)}
                           </span>

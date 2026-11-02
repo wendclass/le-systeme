@@ -4,6 +4,7 @@ import { HUNTER_RANKS } from '../../lib/constants';
 import { Modal } from '../common/Modal';
 import { HunterBadge } from '../common/HunterBadge';
 import { formatUSD, formatOriginalCurrency, formatDateFr, getMonthYearKey } from '../../lib/utils';
+import { getAppCurrency, convertAmount, formatTransactionAmount } from '../../lib/currency';
 import { GlassCard } from '../common/GlassCard';
 import {
   Sparkles,
@@ -53,14 +54,23 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
 
   const actTx = transactions.filter((t) => t.activite_id === activity.id);
   const actExpenses = recurringExpenses.filter((e) => e.activite_id === activity.id);
+  const activeCurrency = getAppCurrency();
 
   const totalRevenue = actTx
     .filter((t) => t.type === 'revenu')
-    .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+    .reduce((sum, t) => {
+      const orig = t.montant_original ?? t.montant_usd ?? 0;
+      const fromCurr = t.devise_origine || 'USD';
+      return sum + convertAmount(orig, fromCurr, activeCurrency);
+    }, 0);
 
   const totalExpenses = actTx
     .filter((t) => t.type === 'depense')
-    .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+    .reduce((sum, t) => {
+      const orig = t.montant_original ?? t.montant_usd ?? 0;
+      const fromCurr = t.devise_origine || 'USD';
+      return sum + convertAmount(orig, fromCurr, activeCurrency);
+    }, 0);
 
   const netProfit = totalRevenue - totalExpenses;
 
@@ -73,11 +83,19 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
 
     const rev = actTx
       .filter((t) => t.type === 'revenu' && getMonthYearKey(t.date) === mKey)
-      .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+      .reduce((sum, t) => {
+        const orig = t.montant_original ?? t.montant_usd ?? 0;
+        const fromCurr = t.devise_origine || 'USD';
+        return sum + convertAmount(orig, fromCurr, activeCurrency);
+      }, 0);
 
     const exp = actTx
       .filter((t) => t.type === 'depense' && getMonthYearKey(t.date) === mKey)
-      .reduce((sum, t) => sum + (t.montant_usd || 0), 0);
+      .reduce((sum, t) => {
+        const orig = t.montant_original ?? t.montant_usd ?? 0;
+        const fromCurr = t.devise_origine || 'USD';
+        return sum + convertAmount(orig, fromCurr, activeCurrency);
+      }, 0);
 
     return { month: label, revenu: rev, depense: exp };
   });
@@ -275,7 +293,7 @@ export const ActivityDetailModal: React.FC<ActivityDetailModalProps> = ({
                     <span className="text-[10px] text-white/50">{exp.nature} • {exp.frequence}</span>
                   </div>
                   <span className="font-bold text-white tabular-nums">
-                    {formatUSD(exp.montant_usd, 0)}/m
+                    {formatTransactionAmount(exp.montant_original, exp.devise_origine, exp.montant_usd, 0)}/m
                   </span>
                 </div>
               ))}
