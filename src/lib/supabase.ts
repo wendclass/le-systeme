@@ -19,7 +19,7 @@ const getEnvVar = (name: string, fallback: string = ''): string => {
 };
 
 export const DEFAULT_SUPABASE_URL =
-  getEnvVar('VITE_SUPABASE_URL', 'https://znhqmvxffhqrtikeeirg.supabase.co');
+  getEnvVar('VITE_SUPABASE_URL', 'https://mtinydrkpxffrlsuwpzh.supabase.co');
 
 const ENV_SUPABASE_KEY = getEnvVar('VITE_SUPABASE_ANON_KEY', '');
 
