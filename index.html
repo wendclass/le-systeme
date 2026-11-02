@@ -2,19 +2,24 @@
 <html lang="fr" class="dark">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/site.webmanifest" />
-    <meta name="theme-color" content="#6600CC" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Le Système — Class S</title>
+    <title>Le Système · Class S</title>
+    
+    <!-- Favicon & Identité de marque Class S (source : /brand/ sans recompression) -->
+    <link rel="icon" type="image/svg+xml" href="/brand/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/brand/favicon-32x32.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/brand/favicon-180x180.png" />
+    
+    <meta name="theme-color" content="#0D0A18" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta name="referrer" content="no-referrer" />
+
+    <!-- Typographie : Cormorant Garamond (H1/H2) et Jost (corps & interface) avec display=swap -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,600&family=Jost:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap" rel="stylesheet">
   </head>
-  <body class="bg-[#0D0A18] text-[#F7F5FB] font-jost antialiased selection:bg-[#A87FE8]/30 selection:text-[#F7F5FB] min-h-screen overflow-x-hidden">
+  <body class="bg-[#0D0A18] text-[#F8F5FF] font-body antialiased selection:bg-[#A87FE8]/30 selection:text-[#F8F5FF] min-h-screen overflow-x-hidden">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

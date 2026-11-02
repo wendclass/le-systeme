@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { getSupabaseClient } from '../lib/supabase';
 
 export interface UserProfile {
@@ -12,6 +12,7 @@ export interface UserProfile {
 interface AuthContextType {
   user: UserProfile | null;
   loading: boolean;
+  isSuperAdmin: boolean;
   authError: string | null;
   clearAuthError: () => void;
   loginWithGoogle: () => Promise<void>;
@@ -25,6 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const LOCAL_USER_KEY = 'class_s_user_session';
+const SUPER_ADMIN_EMAIL = (import.meta.env.VITE_SUPER_ADMIN_EMAIL || 'wendclasss@gmail.com').toLowerCase();
 
 function supabaseUserToProfile(supaUser: {
   id: string;
@@ -54,6 +56,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const clearAuthError = () => setAuthError(null);
 
+  const isSuperAdmin = useMemo(() => {
+    if (!user || !user.email) return false;
+    return user.email.toLowerCase().trim() === SUPER_ADMIN_EMAIL;
+  }, [user]);
+
   useEffect(() => {
     const init = async () => {
       const client = getSupabaseClient();
@@ -68,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             return;
           }
 
-          // Subscribe to auth state changes (handles OAuth redirect callback)
+          // Inscription aux changements d'état d'authentification
           client.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
               const u = supabaseUserToProfile(session.user);
@@ -80,17 +87,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
           });
         } catch (err) {
-          console.warn('Supabase session check failed:', err);
+          console.warn('Vérification session Supabase échouée :', err);
         }
       }
 
-      // Fall back to localStorage cache (works offline / no Supabase key)
+      // Secours localStorage
       const saved = localStorage.getItem(LOCAL_USER_KEY);
       if (saved) {
         try {
           setUser(JSON.parse(saved));
         } catch {
-          /* ignore parse errors */
+          /* ignorer */
         }
       }
       setLoading(false);
@@ -106,23 +113,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { error } = await client.auth.signInWithOAuth({
           provider: 'google',
-          options: { redirectTo: window.location.origin },
+          options: { redirectTo: `${window.location.origin}/auth/callback` },
         });
         if (error) throw error;
         return;
       } catch (err: unknown) {
         const rawMsg = err instanceof Error ? err.message : String(err);
-        console.warn('Google OAuth error:', rawMsg);
+        console.warn('Erreur Google OAuth :', rawMsg);
         if (rawMsg.includes('provider is not enabled') || rawMsg.includes('Unsupported provider')) {
           setAuthError(
-            "Le fournisseur Google n'est pas encore activé dans ton projet Supabase (Authentication > Providers > Google). Utilise l'inscription par Email ci-dessous ou active Google dans Supabase."
+            'Le fournisseur Google n’est pas activé dans le projet Supabase. Connectez-vous par email ou activez Google dans Supabase.'
           );
         } else {
           setAuthError(rawMsg || 'Erreur de connexion Google.');
         }
       }
     } else {
-      // Demo mode — no Supabase key configured yet
+      // Mode démonstration local
       const demoUser: UserProfile = {
         id: 'demo_hunter_' + Date.now(),
         email: 'demo@le-systeme.app',
@@ -140,7 +147,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearAuthError();
     const client = getSupabaseClient();
     if (!client) {
-      setAuthError('Connexion cloud non configurée. Colle ta clé Supabase dans les Réglages.');
+      setAuthError('Connexion cloud non configurée.');
       return;
     }
     setLoading(true);
@@ -155,13 +162,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Email ou mot de passe incorrect.';
       if (msg.includes('provider is not enabled') || msg.includes('Unsupported provider')) {
-        setAuthError(
-          "Le fournisseur Email n'est pas activé dans ton projet Supabase. Va dans Authentication > Providers > Email et active 'Enable Email provider'."
-        );
+        setAuthError('Le fournisseur Email n’est pas activé dans votre projet Supabase.');
       } else if (msg.includes('Invalid login')) {
         setAuthError('Email ou mot de passe incorrect.');
       } else if (msg.includes('Email not confirmed')) {
-        setAuthError('Vérifie tes emails pour confirmer ton adresse avant de te connecter.');
+        setAuthError('Vérifiez vos emails pour confirmer votre adresse avant de vous connecter.');
       } else {
         setAuthError(msg);
       }
@@ -174,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     clearAuthError();
     const client = getSupabaseClient();
     if (!client) {
-      setAuthError('Connexion cloud non configurée. Colle ta clé Supabase dans les Réglages.');
+      setAuthError('Connexion cloud non configurée.');
       return;
     }
     setLoading(true);
@@ -184,32 +189,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password,
         options: {
           data: { full_name: displayName, display_name: displayName },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
       if (error) throw error;
 
       if (data.session?.user) {
-        // Auto-confirmed session
         const u = supabaseUserToProfile(data.session.user);
         setUser(u);
         localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(u));
       } else if (data.user && !data.user.email_confirmed_at) {
-        // Email confirmation required
-        setAuthError('✅ Compte créé ! Vérifie ta boîte email pour confirmer ton adresse avant de te connecter.');
+        setAuthError('Compte créé avec succès. Vérifiez votre boîte email pour valider votre compte.');
       } else if (data.user) {
         const u = supabaseUserToProfile(data.user);
         setUser(u);
         localStorage.setItem(LOCAL_USER_KEY, JSON.stringify(u));
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erreur lors de la création du compte.";
-      if (msg.includes('provider is not enabled') || msg.includes('Unsupported provider')) {
-        setAuthError(
-          "Le fournisseur Email n'est pas activé dans ton projet Supabase. Va dans Authentication > Providers > Email et coche 'Enable Email provider'."
-        );
-      } else if (msg.includes('already registered')) {
-        setAuthError('Un compte existe déjà avec cet email. Connecte-toi.');
+      const msg = err instanceof Error ? err.message : 'Erreur lors de la création du compte.';
+      if (msg.includes('already registered')) {
+        setAuthError('Un compte existe déjà avec cette adresse email.');
       } else if (msg.includes('Password should be')) {
         setAuthError('Le mot de passe doit comporter au moins 6 caractères.');
       } else {
@@ -232,9 +231,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         redirectTo: `${window.location.origin}/reset-password`,
       });
       if (error) throw error;
-      setAuthError('✅ Email de réinitialisation envoyé. Vérifie ta boîte.');
+      setAuthError('Email de réinitialisation envoyé. Vérifiez votre boîte de réception.');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Erreur lors de l'envoi.";
+      const msg = err instanceof Error ? err.message : 'Erreur lors de l’envoi.';
       setAuthError(msg);
     }
   };
@@ -245,7 +244,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await client.auth.signOut();
       } catch {
-        /* ignore */
+        /* ignorer */
       }
     }
     localStorage.removeItem(LOCAL_USER_KEY);
@@ -258,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         await client.auth.signOut();
       } catch {
-        /* ignore */
+        /* ignorer */
       }
     }
     const keysToRemove: string[] = [];
@@ -277,6 +276,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         user,
         loading,
+        isSuperAdmin,
         authError,
         clearAuthError,
         loginWithGoogle,

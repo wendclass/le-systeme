@@ -172,7 +172,7 @@ export const SystemDataProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       } catch (err) {
         console.warn(`Cloud sync warning for ${tableName}:`, err);
         setSyncState('error');
-        setSyncErrorMessage('Erreur synchronisation — réessai automatique');
+        setSyncErrorMessage('Erreur de synchronisation, réessai automatique');
         setTimeout(() => setSyncState('synced'), 5000);
       }
     },

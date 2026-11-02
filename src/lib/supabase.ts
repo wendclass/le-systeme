@@ -1,9 +1,27 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-export const DEFAULT_SUPABASE_URL =
-  import.meta.env.VITE_SUPABASE_URL || 'https://znhqmvxffhqrtikeeirg.supabase.co';
+const getEnvVar = (name: string, fallback: string = ''): string => {
+  try {
+    if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env[name]) {
+      return import.meta.env[name];
+    }
+  } catch {
+    // Silencieux
+  }
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env[name]) {
+      return process.env[name];
+    }
+  } catch {
+    // Silencieux
+  }
+  return fallback;
+};
 
-const ENV_SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || '';
+export const DEFAULT_SUPABASE_URL =
+  getEnvVar('VITE_SUPABASE_URL', 'https://znhqmvxffhqrtikeeirg.supabase.co');
+
+const ENV_SUPABASE_KEY = getEnvVar('VITE_SUPABASE_ANON_KEY', '');
 
 let cachedClient: SupabaseClient | null = null;
 let cachedKey = '';
